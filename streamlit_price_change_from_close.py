@@ -1,5 +1,5 @@
 import streamlit as st
-from openbb import obb
+import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
@@ -54,17 +54,19 @@ def calculate_stock_returns(stock_list, comparison_date=None, comparison_time=No
             progress_bar.progress(progress)
             status_text.text(f"Processing {symbol}... ({idx + 1}/{len(stock_list)})")
             
-            # ticker = yf.Ticker(symbol)
-            ticker = obb.equity.price.historical(symbol=symbol, start_date=prev_day.strftime('%Y-%m-%d'), end_date=(target_date + timedelta(days=1)).strftime('%Y-%m-%d'), interval='1h').to_df()
+            
+            # ticker = obb.equity.price.historical(symbol=symbol, start_date=prev_day.strftime('%Y-%m-%d'), end_date=(target_date + timedelta(days=1)).strftime('%Y-%m-%d'), interval='1h').to_df()
+            ticker = yf.Ticker(symbol).history(start=prev_day, end=target_date + timedelta(days=1), interval='1h')
+            
             
             # Get target date data
             target_date_data = ticker[ticker.index.strftime('%Y-%m-%d') == target_date.strftime('%Y-%m-%d')]
-            # target_date_data.index = target_date_data.index.tz_convert('America/New_York')
-            target_time_price = target_date_data[target_date_data.index.strftime('%H:%M') == comparison_time]['close'].values[0]
+            target_date_data.index = target_date_data.index.tz_convert('America/New_York')
+            target_time_price = target_date_data[target_date_data.index.strftime('%H:%M') == comparison_time]['Close'].values[0]
             
             # Get previous day data
             prev_day_data = ticker[ticker.index.strftime('%Y-%m-%d') == prev_day.strftime('%Y-%m-%d')]
-            prev_day_close = prev_day_data.iloc[-1]['close']
+            prev_day_close = prev_day_data.iloc[-1]['Close']
             
             returns_pct = ((target_time_price - prev_day_close) / prev_day_close) * 100
             
@@ -136,7 +138,7 @@ def main():
     comparison_date = None
     max_days_back = 730
     min_date = datetime.now() - timedelta(days=max_days_back)
-    max_date = datetime.now() - timedelta(days=2)
+    max_date = datetime.now()
     comparison_date = st.sidebar.date_input(
         "Select target date",
         max_date,
@@ -208,7 +210,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # results = calculate_stock_returns(['mstr'], "01-02-2025", '10:30') #12-30-2024
+    # results = calculate_stock_returns(['mstr'], "12-18-2024", '10:30') #12-30-2024
     # print(results)
     
 # streamlit run app.py
